@@ -45,7 +45,7 @@ The meta tags will be injected between the markers and the meta that are already
 
 Given a meta.json file:
 
-```
+```json
 {
 	"meta": [{
 			"name": "testmeta",
@@ -60,8 +60,7 @@ Given a meta.json file:
 
 will result in the file `dist/index.html`:
 
-```
-    html
+```html
    <!DOCTYPE html>
    <html>
    <head>
@@ -79,7 +78,7 @@ will result in the file `dist/index.html`:
 ```
 
 *Notice that the code*
-```
+```html
      <!-- remove:production -->
      <script src="http://localhost:35729/livereload.js?snipver=1"></script>
      <!-- endremove -->
@@ -87,7 +86,7 @@ will result in the file `dist/index.html`:
 *has been removed.*
 
 *The comment*
-```
+```html
     <!-- inject:git-hash -->
 ```
 *has been replaced by the git hash of the current commit.*
