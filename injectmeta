@@ -1,0 +1,95 @@
+#!/usr/bin/env node
+
+'use strict';
+
+const child_process = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const replaceStream = require('replacestream');
+const program = require('commander');
+
+let metaTags;
+let revision;
+let removeCondition;
+
+const replaceFunc = replacement => {
+    return function() {
+        return replacement === undefined ? arguments[0] : replacement;
+    };
+};
+
+const handleError = (message) => {
+    console.error(message);
+    process.exit(1);
+};
+
+const getFullPath = (file) => file.substring(0, 1) !== '/' ? `${process.cwd()}/${file}` : `${process.cwd()}${file}`;
+
+program
+.version('1.0.0')
+.option('-i, --input <input>', 'Input file')
+.option('-o, --output <output>', 'Output file (defaults to input when omitted)')
+.option('-m, --meta <meta>', 'meta tag(s) to inject (json file) to head')
+.option('-r, --remove <remove>', 'Remove condition')
+.option('-H, --hash', 'Inject git hash of current commit')
+.parse(process.argv);
+
+if(!program.input) {
+    handleError('Please specify an input file');
+}
+else {
+    try {
+        program.input = getFullPath(program.input);
+
+        if(fs.lstatSync(program.input).isDirectory()) {
+            handleError(`'${program.input}' is a directory, please specify an input file`);
+        }
+        if(!fs.lstatSync(program.input).isFile()) {
+            handleError(`File '${program.input}' not found`);
+        }
+    }
+    catch(e) {
+        handleError(`File '${program.input}' not found`);
+    }
+}
+
+program.output = program.output ? getFullPath(program.output) : program.input;
+
+if(program.meta) {
+    const meta = program.meta;
+    let metaJsonPath = getFullPath(meta);
+    try {
+        if(fs.lstatSync(metaJsonPath).isFile()) {
+            let inputBuffer = fs.readFileSync(metaJsonPath);
+            let metaJson = JSON.parse(inputBuffer);
+            metaTags = metaJson.meta.map(m => `<meta name="${m.name}" content="${m.content}">`).join('\n\t');
+        } else if(fs.lstatSync(meta).isDirectory()) {
+            throw new Error("is Directory, need to be file");
+        } else {
+            throw new Error("The meta input value points to an incorrect or non-existent file.");
+        }
+    }
+    catch(e) {
+        handleError(`File '${meta}' not found`);
+    }
+}
+
+if(program.remove) {
+    removeCondition = program.remove.split(':').pop();
+}
+
+if(program.hash) {
+    revision = child_process
+                .execSync('git rev-parse HEAD')
+                .toString().trim();
+}
+
+const injectHash = replaceFunc(`<!-- ${revision} -->`);
+const replaceMeta = replaceFunc(metaTags);
+const regex = new RegExp(`(<!\\-\\- remove:${removeCondition} \\-\\->)([\\s\\S]*?)(<!\\-\\- endremove \\-\\->)`, 'gm');
+
+fs.createReadStream(program.input)
+.pipe(replaceStream(/(<!\-\- inject:meta \-\->)([\s\S]*?)(<!\-\- endinject \-\->)/gm, replaceMeta))
+.pipe(replaceStream(/(<!\-\- inject:git\-hash \-\->)/gm, injectHash))
+.pipe(replaceStream(regex, ''))
+.pipe(fs.createWriteStream(program.output, {flags: 'r+'}));

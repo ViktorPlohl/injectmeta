@@ -1,0 +1,22 @@
+{
+  "name": "injectmeta",
+  "version": "1.0.0",
+  "description": "A command line utility to inject meta tags into an html file or to remove code based on conditions.",
+  "bin": "./injectmeta",
+  "scripts": {
+    "test": "tape tests/*.js | faucet"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ViktorPlohl/metainject"
+  },
+  "author": "Viktor Plohl <plohl.viktor@sonrisa.hu>",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^2.9.0",
+    "faucet": "0.0.1",
+    "replacestream": "^4.0.0",
+    "tape": "^4.5.1",
+    "glob": "^7.0.0"
+  }
+}
